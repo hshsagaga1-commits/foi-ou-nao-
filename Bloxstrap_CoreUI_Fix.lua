@@ -57,12 +57,16 @@ end
 local patched = [=[
 local funnycon
 local funnycorecon
+
 local guisets = {}
 local guisetmap = {}
+
 local positionsets = {}
 local positionmap = {}
+
 local CORE_SCALE_TAG = "__BloxstrapCoreUIScaleFix"
 local CORE_SCALE = 0.7
+local ROBLOX_ICON_Y = -3
 
 local function rememberScale(scaler, oldscale, created)
     if not scaler or guisetmap[scaler] then
@@ -89,6 +93,37 @@ local function rememberPosition(gui)
         gui = gui,
         position = gui.Position
     })
+end
+
+local function getOriginalPosition(gui)
+    for _, data in ipairs(positionsets) do
+        if data.gui == gui then
+            return data.position
+        end
+    end
+
+    return nil
+end
+
+local function setPositionOffset(gui, x, y)
+    if not gui or not gui:IsA("GuiObject") then
+        return
+    end
+
+    rememberPosition(gui)
+
+    local original = getOriginalPosition(gui)
+
+    if not original then
+        return
+    end
+
+    gui.Position = UDim2.new(
+        original.X.Scale,
+        original.X.Offset + x,
+        original.Y.Scale,
+        original.Y.Offset + y
+    )
 end
 
 local function scalePlayerGui(v)
@@ -232,8 +267,10 @@ local function scaleCoreUI()
 
             if icon and icon:IsA("GuiObject") then
                 directScale(icon)
+                setPositionOffset(icon, 0, ROBLOX_ICON_Y)
             else
                 directScale(holder)
+                setPositionOffset(holder, 0, ROBLOX_ICON_Y)
             end
         end
 
@@ -247,14 +284,7 @@ local function scaleCoreUI()
             if holder and holder:IsA("GuiObject") then
                 rememberPosition(left)
 
-                local basePosition = nil
-
-                for _, data in ipairs(positionsets) do
-                    if data.gui == left then
-                        basePosition = data.position
-                        break
-                    end
-                end
+                local basePosition = getOriginalPosition(left)
 
                 if basePosition then
                     local shrink = holder.AbsoluteSize.X * (1 - CORE_SCALE)
